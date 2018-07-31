@@ -1,0 +1,7 @@
+[package]
+name = "bandwith-monitor"
+version = "0.1.0"
+authors = ["Alexander Weiß"]
+
+[dependencies]
+termion = "*"
