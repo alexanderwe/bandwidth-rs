@@ -1,7 +1,11 @@
 [package]
-name = "bandwith-monitor"
+name = "bandwidth-monitor"
 version = "0.1.0"
 authors = ["Alexander Weiß"]
 
 [dependencies]
-termion = "*"
+pretty-bytes = "0.2.2"
+toml = "0.4"
+serde = "1.0"
+serde_derive = "1.0"
+failure = "0.1.2"
