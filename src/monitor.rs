@@ -6,9 +6,10 @@ use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use std::str;
-use std::{env, fs};
 
 use config::Config;
+use proc;
+use std::{env, fs};
 
 const NET_DEV_FILE: &'static str = "/proc/net/dev";
 
@@ -38,25 +39,46 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
     dir.pop();
     dir.push("stats");
 
-    let stats_filepath = match dir.to_str() {
-        Some(v) => v,
-        None => "",
-    };
-
-    // let mut interfaces: HashMap<String, Interface> = HashMap::new();
-    let mut file = File::open(NET_DEV_FILE)
-        .map_err(|_| ServiceError::MissingFileError(String::from(stats_filepath)))?;
-
-    if !Path::new(stats_filepath).exists() {
-        let mut stats_file =
-            File::create(stats_filepath).map_err(|_| ServiceError::StatsFileCreationError)?;
-        stats_file
-            .write_all(b"0\n0")
-            .map_err(|_| ServiceError::MissingFileError(String::from(stats_filepath)))?;
+    if !Path::new(&dir).exists() {
+        fs::create_dir(&dir)?;
     }
 
-    let stats_file = File::open(stats_filepath)
-        .map_err(|_| ServiceError::MissingFileError(String::from(stats_filepath)))?;
+    dir.push(&config.interface);
+
+    // println!("{}", stats_filepath);
+
+    if !Path::new(&dir).exists() {
+        let mut stats_file = File::create(&dir).map_err(|_| ServiceError::StatsFileCreationError)?;
+        stats_file.write_all(b"0\n0").map_err(|_| {
+            ServiceError::MissingFileError(
+                dir.to_str()
+                    .unwrap_or("Error unwrapping file path")
+                    .to_string(),
+            )
+        })?;
+    }
+
+    let stats_file = File::open(&dir).map_err(|_| {
+        ServiceError::MissingFileError(
+            dir.to_str()
+                .unwrap_or("Error unwrapping file path")
+                .to_string(),
+        )
+    })?;
+
+    let metadata = fs::metadata(&dir)?;
+    let modified_time = metadata.modified()?;
+
+    if modified_time < proc::get_startup_time()? {
+        fs::write(&dir, format!("{}\n{}", 0, 0)).map_err(|_| {
+            ServiceError::MissingFileError(
+                dir.to_str()
+                    .unwrap_or("Error unwrapping file path")
+                    .to_string(),
+            )
+        })?;
+    }
+
     let mut stats_vec: Vec<String> = Vec::new();
     let buf_reader = BufReader::new(stats_file);
 
@@ -65,7 +87,8 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
         stats_vec.push(line);
     }
 
-    // println!("{:?}", stats_vec);
+    let mut file = File::open(NET_DEV_FILE)
+        .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
@@ -85,7 +108,7 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
         }
         let vars = s.split_whitespace().collect::<Vec<&str>>();
         let interface = Interface {
-            name: vars[0].to_string(),
+            name: vars[0].to_string().replace(":", ""),
             received_bytes: vars[1].parse::<u64>().unwrap(),
             received_packets: vars[2].parse::<u64>().unwrap(),
             received_errs: vars[3].parse::<u64>().unwrap(),
@@ -106,17 +129,23 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
 
         if config.interface == interface.name {
             result = format!(
-                "{} {} ⇩{}/s -- {} ⇧{}/s ",
+                "{} {} ⇩{}/s | {} ⇧{}/s ",
                 interface.name,
                 convert(interface.received_bytes as f64),
                 convert((interface.received_bytes - &stats_vec[0].parse::<u64>().unwrap()) as f64),
                 convert(interface.transmit_bytes as f64),
-                convert((interface.received_bytes - &stats_vec[0].parse::<u64>().unwrap()) as f64),
+                convert((interface.transmit_bytes - &stats_vec[1].parse::<u64>().unwrap()) as f64),
             );
             fs::write(
-                stats_filepath,
+                &dir,
                 format!("{}\n{}", interface.received_bytes, interface.transmit_bytes),
-            ).map_err(|_| ServiceError::MissingFileError(String::from(stats_filepath)))?;
+            ).map_err(|_| {
+                ServiceError::MissingFileError(
+                    dir.to_str()
+                        .unwrap_or("Error unwrapping file path")
+                        .to_string(),
+                )
+            })?;
         }
     }
 

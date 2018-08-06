@@ -6,17 +6,16 @@ extern crate serde_derive;
 extern crate failure;
 
 mod config;
-use config::get_config;
-
 mod monitor;
+mod proc;
 
+use config::get_config;
 use failure::Error;
 
 pub fn get_monitor() -> Result<String, Error> {
     let cfg = get_config()?;
 
     let monitor = monitor::read_dev(&cfg)?;
-
     Ok(monitor)
 }
 
