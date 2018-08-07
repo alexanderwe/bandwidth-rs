@@ -26,7 +26,7 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
     if !Path::new(&dir).exists() {
         let mut stats_file = File::create(&dir).map_err(|_| ServiceError::StatsFileCreationError)?;
         stats_file.write_all(b"0\n0").map_err(|_| {
-            ServiceError::MissingFileError(
+            ServiceError::FileWriteError(
                 dir.to_str()
                     .unwrap_or("Error unwrapping file path")
                     .to_string(),
@@ -79,7 +79,7 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
                 &dir,
                 format!("{}\n{}", interface.received_bytes, interface.transmit_bytes),
             ).map_err(|_| {
-                ServiceError::MissingFileError(
+                ServiceError::FileWriteError(
                     dir.to_str()
                         .unwrap_or("Error unwrapping file path")
                         .to_string(),
