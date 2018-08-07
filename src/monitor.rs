@@ -3,36 +3,12 @@ use pretty_bytes::converter::convert;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 use std::path::Path;
-use std::str;
 
 use config::Config;
 use proc;
 use std::{env, fs};
-
-const NET_DEV_FILE: &'static str = "/proc/net/dev";
-
-#[derive(Debug)]
-struct Interface {
-    name: String,
-    received_bytes: u64,
-    received_packets: u64,
-    received_errs: u64,
-    received_drop: u64,
-    received_fifo: u64,
-    received_frame: u64,
-    received_compressed: u64,
-    received_multicast: u64,
-    transmit_bytes: u64,
-    transmit_packets: u64,
-    transmit_errs: u64,
-    transmit_drop: u64,
-    transmit_fifo: u64,
-    transmit_colls: u64,
-    transmit_carrier: u64,
-    transmit_compressed: u64,
-}
 
 pub fn read_dev(config: &Config) -> Result<String, Error> {
     let mut dir = env::current_exe()?;
@@ -87,46 +63,9 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
         stats_vec.push(line);
     }
 
-    let mut file = File::open(NET_DEV_FILE)
-        .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
-
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)
-        .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
-
-    let file_content = str::from_utf8(&buffer);
-    let split = file_content.unwrap().split("\n");
-
-    let mut vec = split.collect::<Vec<&str>>();
-    vec.drain(0..2);
-
     let mut result: String = String::from("");
 
-    for s in vec {
-        if s.len() == 0 {
-            continue;
-        }
-        let vars = s.split_whitespace().collect::<Vec<&str>>();
-        let interface = Interface {
-            name: vars[0].to_string().replace(":", ""),
-            received_bytes: vars[1].parse::<u64>().unwrap(),
-            received_packets: vars[2].parse::<u64>().unwrap(),
-            received_errs: vars[3].parse::<u64>().unwrap(),
-            received_drop: vars[4].parse::<u64>().unwrap(),
-            received_fifo: vars[5].parse::<u64>().unwrap(),
-            received_frame: vars[6].parse::<u64>().unwrap(),
-            received_compressed: vars[7].parse::<u64>().unwrap(),
-            received_multicast: vars[8].parse::<u64>().unwrap(),
-            transmit_bytes: vars[9].parse::<u64>().unwrap(),
-            transmit_packets: vars[10].parse::<u64>().unwrap(),
-            transmit_errs: vars[11].parse::<u64>().unwrap(),
-            transmit_drop: vars[12].parse::<u64>().unwrap(),
-            transmit_fifo: vars[13].parse::<u64>().unwrap(),
-            transmit_colls: vars[14].parse::<u64>().unwrap(),
-            transmit_carrier: vars[15].parse::<u64>().unwrap(),
-            transmit_compressed: vars[16].parse::<u64>().unwrap(),
-        };
-
+    for interface in proc::read_interfaces()? {
         if config.interface == interface.name {
             result = format!(
                 "{} {} ⇩{}/s | {} ⇧{}/s ",
