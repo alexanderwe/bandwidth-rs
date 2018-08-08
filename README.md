@@ -37,3 +37,5 @@ exec = path/to/script
 label = %output%
 format = <label>
 ``` 
+
+![Polybar Screenshot](/screenshot.png)
