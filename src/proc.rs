@@ -5,8 +5,28 @@ use std::io::prelude::*;
 use std::str;
 use std::time::{Duration, SystemTime};
 
+use std::fmt;
+
+#[cfg(target_os = "macos")]
+use sysctl;
+
 use monitor::ServiceError;
 
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct Boottime {
+    pub sec: u64,
+    pub usec: u64,
+}
+
+#[cfg(target_os = "macos")]
+impl fmt::Debug for Boottime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Boottime: sec {}, usec {}", self.sec, self.usec)
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
 const UPTIME_FILE: &'static str = "/proc/uptime";
 const NET_DEV_FILE: &'static str = "/proc/net/dev";
 
@@ -31,6 +51,14 @@ pub struct Interface {
     pub transmit_compressed: u64,
 }
 
+#[cfg(target_os = "macos")]
+pub fn get_startup_time() -> Result<SystemTime, Error> {
+    let val = sysctl::Ctl::new("kern.boottime")?.value_as::<Boottime>()?;
+
+    Ok(SystemTime::now() - Duration::from_secs(val.sec))
+}
+
+#[cfg(not(target_os = "macos"))]
 pub fn get_startup_time() -> Result<SystemTime, Error> {
     let mut file = File::open(UPTIME_FILE)
         .map_err(|_| ServiceError::MissingFileError(String::from(UPTIME_FILE)))?;
@@ -51,6 +79,10 @@ pub fn get_startup_time() -> Result<SystemTime, Error> {
     Ok(SystemTime::now() - Duration::from_secs(uptime_sec as u64))
 }
 
+#[cfg(target_os = "macos")]
+pub fn read_interfaces() -> Result<Vec<Interface>, Error> {}
+
+#[cfg(not(target_os = "macos"))]
 pub fn read_interfaces() -> Result<Vec<Interface>, Error> {
     let mut file = File::open(NET_DEV_FILE)
         .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;

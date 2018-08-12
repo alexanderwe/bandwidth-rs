@@ -5,6 +5,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate failure;
 
+extern crate libc;
+extern crate sysctl;
+
 mod config;
 mod monitor;
 mod proc;
