@@ -6,6 +6,11 @@ bandwitdh-rs is a small tool which displays the current upload/download rates an
 
 * Linux
 
+### Todo
+
+* Mac OS
+
+
 ## Installation
 
 ## Usage
@@ -24,16 +29,17 @@ bandwidth-rs -l
 
 ## polybar
 
-bandwidth-rs can also be used with polybar or any other status bar, but is only tested with polybar. To execute it with polybar just do not run it
-in the loop mode, this will not work. Polybar will take care of the execution of the script every second.
+bandwidth-rs can also be used with polybar or any other status bar, but is only tested with polybar. To execute it with polybar just do not execute it
+with the loop mode. Polybar will take care of the execution of the script every second.
 
 Here you can see the configuration for the use with polybar:
+
 ```
 modules-right = bandwidthmonitor memory....
 
 [module/bandwidthmonitor]
 type = custom/script
-exec = path/to/script
+exec = path/to/bandwitdh-rs
 label = %output%
 format = <label>
 ``` 

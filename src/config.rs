@@ -1,17 +1,26 @@
 extern crate toml;
 
+use clap;
 use failure::Error;
+use std::path::PathBuf;
 use std::{env, fs};
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub interface: String,
+    pub looping: bool,
 }
 
-pub fn get_config() -> Result<Config, Error> {
-    let mut dir = env::current_exe()?;
-    dir.pop();
-    dir.push("config.toml");
+pub fn get_config(matches: &clap::ArgMatches) -> Result<Config, Error> {
+    let mut dir: PathBuf;
+
+    if matches.is_present("config") {
+        dir = PathBuf::from(matches.value_of("config").unwrap());
+    } else {
+        dir = env::current_exe()?;
+        dir.pop();
+        dir.push("config.toml");
+    }
 
     let content = fs::read_to_string(&dir).map_err(|_| ConfigError::CannotReadConfigFile)?;
 
