@@ -11,6 +11,11 @@ bandwitdh-rs is a small tool which displays the current upload/download rates an
 
 __Todo__
 
+
+## Depdendencies
+
+* You need to have FontAwesome 4 installed
+
 ## Usage
 
 Create a `config.toml` file inside the directory of the binary, or anywhere else (then you need the `-c` option) and define the interface you want to monitor:
@@ -61,4 +66,3 @@ format = <label>
 
 * I am still learning Rust so expect some parts of the code to be not as idomatic as it could be. 
 * The binary size is quite huge for what it does right now since it uses some more feature-full crates like `clap`. Those crates are included since I am not sure how this application will mature and what features will be added.
-
