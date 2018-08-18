@@ -58,6 +58,7 @@ type = custom/script
 exec = path/to/bandwitdh-rs
 label = %output%
 format = <label>
+interval = 1 
 ``` 
 
 ![Polybar Screenshot](/screenshot.png)
