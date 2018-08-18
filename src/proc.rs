@@ -1,11 +1,12 @@
-use failure::Error;
+use failure::{Error, ResultExt};
+
+use std::str;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::str;
 use std::time::{Duration, SystemTime};
 
-use monitor::ServiceError;
+use error::ServiceError;
 
 const UPTIME_FILE: &'static str = "/proc/uptime";
 const NET_DEV_FILE: &'static str = "/proc/net/dev";
@@ -32,12 +33,12 @@ pub struct Interface {
 }
 
 pub fn get_startup_time() -> Result<SystemTime, Error> {
-    let mut file = File::open(UPTIME_FILE)
-        .map_err(|_| ServiceError::MissingFileError(String::from(UPTIME_FILE)))?;
+    let mut file =
+        File::open(UPTIME_FILE).context(ServiceError::MissingFileError(String::from(UPTIME_FILE)))?;
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
-        .map_err(|_| ServiceError::MissingFileError(String::from(UPTIME_FILE)))?;
+        .context(ServiceError::MissingFileError(String::from(UPTIME_FILE)))?;
 
     let file_content = str::from_utf8(&buffer);
 
@@ -53,11 +54,11 @@ pub fn get_startup_time() -> Result<SystemTime, Error> {
 
 pub fn read_interfaces() -> Result<Vec<Interface>, Error> {
     let mut file = File::open(NET_DEV_FILE)
-        .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
+        .context(ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
-        .map_err(|_| ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
+        .context(ServiceError::MissingFileError(String::from(NET_DEV_FILE)))?;
 
     let file_content = str::from_utf8(&buffer);
     let split = file_content.unwrap().split("\n");

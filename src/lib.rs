@@ -8,6 +8,7 @@ extern crate serde_derive;
 extern crate failure;
 
 mod config;
+mod error;
 mod monitor;
 mod proc;
 

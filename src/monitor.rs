@@ -1,14 +1,15 @@
-use failure::Error;
+use failure::{Error, ResultExt};
 use pretty_bytes::converter::convert;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
+use std::{env, fs};
 
 use config::Config;
+use error::ServiceError;
 use proc;
-use std::{env, fs};
 
 pub fn read_dev(config: &Config) -> Result<String, Error> {
     let mut dir = env::current_exe()?;
@@ -21,38 +22,27 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
 
     dir.push(&config.interface);
 
-    // println!("{}", stats_filepath);
+    let stats_file_path = dir.to_str()
+        .unwrap_or("Stats file path invalid")
+        .to_string();
 
     if !Path::new(&dir).exists() {
-        let mut stats_file = File::create(&dir).map_err(|_| ServiceError::StatsFileCreationError)?;
-        stats_file.write_all(b"0\n0").map_err(|_| {
-            ServiceError::FileWriteError(
-                dir.to_str()
-                    .unwrap_or("Error unwrapping file path")
-                    .to_string(),
-            )
-        })?;
+        let mut stats_file =
+            File::create(&dir).context(ServiceError::FileCreationError(stats_file_path.clone()))?;
+        stats_file
+            .write_all(b"0\n0")
+            .context(ServiceError::FileWriteError(stats_file_path.clone()))?;
     }
 
-    let stats_file = File::open(&dir).map_err(|_| {
-        ServiceError::MissingFileError(
-            dir.to_str()
-                .unwrap_or("Error unwrapping file path")
-                .to_string(),
-        )
-    })?;
+    let stats_file =
+        File::open(&dir).context(ServiceError::MissingFileError(stats_file_path.clone()))?;
 
     let metadata = fs::metadata(&dir)?;
     let modified_time = metadata.modified()?;
 
     if modified_time < proc::get_startup_time()? {
-        fs::write(&dir, format!("{}\n{}", 0, 0)).map_err(|_| {
-            ServiceError::MissingFileError(
-                dir.to_str()
-                    .unwrap_or("Error unwrapping file path")
-                    .to_string(),
-            )
-        })?;
+        fs::write(&dir, format!("{}\n{}", 0, 0))
+            .context(ServiceError::MissingFileError(stats_file_path.clone()))?;
     }
 
     let mut stats_vec: Vec<String> = Vec::new();
@@ -78,13 +68,7 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
             fs::write(
                 &dir,
                 format!("{}\n{}", interface.received_bytes, interface.transmit_bytes),
-            ).map_err(|_| {
-                ServiceError::FileWriteError(
-                    dir.to_str()
-                        .unwrap_or("Error unwrapping file path")
-                        .to_string(),
-                )
-            })?;
+            ).context(ServiceError::MissingFileError(stats_file_path.clone()))?;
         }
     }
 
@@ -93,16 +77,4 @@ pub fn read_dev(config: &Config) -> Result<String, Error> {
     } else {
         Err(Error::from(ServiceError::InterfaceError))
     }
-}
-
-#[derive(Debug, Fail)]
-pub enum ServiceError {
-    #[fail(display = "Failed to listen on interface")]
-    InterfaceError,
-    #[fail(display = "File {} is missing", _0)]
-    MissingFileError(String),
-    #[fail(display = "Could not create stats file")]
-    StatsFileCreationError,
-    #[fail(display = "Could not write to file {}", _0)]
-    FileWriteError(String),
 }

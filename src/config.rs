@@ -1,9 +1,13 @@
 extern crate toml;
 
 use clap;
-use failure::Error;
+use failure::{Error, ResultExt};
+
+use std::fs::File;
 use std::path::PathBuf;
 use std::{env, fs};
+
+use error::ConfigError;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -22,19 +26,10 @@ pub fn get_config(matches: &clap::ArgMatches) -> Result<Config, Error> {
         dir.push("config.toml");
     }
 
-    let content = fs::read_to_string(&dir).map_err(|_| ConfigError::CannotReadConfigFile)?;
+    let mut _file = File::open(&dir).context("Config file is missing")?;
+    let content = fs::read_to_string(&dir).context(ConfigError::InvalidConfigFile)?;
 
-    let decoded: Config = toml::from_str(&content).map_err(|_| ConfigError::InvalidConfigFile)?;
+    let decoded: Config = toml::from_str(&content).context(ConfigError::InvalidConfigFile)?;
 
     Ok(decoded)
-}
-
-#[derive(Debug, Fail)]
-pub enum ConfigError {
-    #[fail(display = "Could not find config.toml")]
-    MissingConfigFile,
-    #[fail(display = "Could not read config.toml")]
-    CannotReadConfigFile,
-    #[fail(display = "Invalid config.toml")]
-    InvalidConfigFile,
 }
