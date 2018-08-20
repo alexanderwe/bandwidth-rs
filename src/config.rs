@@ -1,31 +1,35 @@
 extern crate toml;
 
-use failure::Error;
+use clap;
+use failure::{Error, ResultExt};
+
+use std::fs::File;
+use std::path::PathBuf;
 use std::{env, fs};
+
+use error::ConfigError;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub interface: String,
+    pub looping: bool,
 }
 
-pub fn get_config() -> Result<Config, Error> {
-    let mut dir = env::current_exe()?;
-    dir.pop();
-    dir.push("config.toml");
+pub fn get_config(matches: &clap::ArgMatches) -> Result<Config, Error> {
+    let mut dir: PathBuf;
 
-    let content = fs::read_to_string(&dir).map_err(|_| ConfigError::CannotReadConfigFile)?;
+    if matches.is_present("config") {
+        dir = PathBuf::from(matches.value_of("config").unwrap());
+    } else {
+        dir = env::current_exe()?;
+        dir.pop();
+        dir.push("config.toml");
+    }
 
-    let decoded: Config = toml::from_str(&content).map_err(|_| ConfigError::InvalidConfigFile)?;
+    let mut _file = File::open(&dir).context("Config file is missing")?;
+    let content = fs::read_to_string(&dir).context(ConfigError::InvalidConfigFile)?;
+
+    let decoded: Config = toml::from_str(&content).context(ConfigError::InvalidConfigFile)?;
 
     Ok(decoded)
-}
-
-#[derive(Debug, Fail)]
-pub enum ConfigError {
-    #[fail(display = "Could not find config.toml")]
-    MissingConfigFile,
-    #[fail(display = "Could not read config.toml")]
-    CannotReadConfigFile,
-    #[fail(display = "Invalid config.toml")]
-    InvalidConfigFile,
 }

@@ -1,27 +1,24 @@
-extern crate pretty_bytes;
+extern crate bandwidth_monitor;
+extern crate clap;
 
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate failure;
-
-mod config;
-mod monitor;
-mod proc;
-
-use config::get_config;
-use failure::Error;
-
-pub fn get_monitor() -> Result<String, Error> {
-    let cfg = get_config()?;
-
-    let monitor = monitor::read_dev(&cfg)?;
-    Ok(monitor)
-}
+use clap::{App, Arg};
 
 fn main() {
-    match get_monitor() {
-        Ok(monitor) => println!("{}", monitor),
+    let matches = App::new("bandwitdh-rs")
+        .version("0.0.1")
+        .author("Alexander Weiß")
+        .about("Small tool to monitor your bandwitdh usage")
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
+        .get_matches();
+
+    match bandwidth_monitor::run(&matches) {
+        Ok(()) => (),
         Err(e) => println!("Monitor unavailable ({})", e),
-    }
+    };
 }
