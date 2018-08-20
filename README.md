@@ -65,7 +65,8 @@ modules-right = bandwidthmonitor memory....
 
 [module/bandwidthmonitor]
 type = custom/script
-exec = path/to/bandwitdh-rs or exec = path/to/bandwidth-rs -c path/to/your/config
+exec = path/to/bandwitdh-rs
+# or exec = path/to/bandwidth-rs -c path/to/your/config
 label = %output%
 format = <label>
 interval = 1 
