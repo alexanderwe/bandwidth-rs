@@ -6,15 +6,25 @@ bandwitdh-rs is a small tool which displays the current upload/download rates an
 
 * Linux
 
-
 ## Installation
 
-__Todo__
+By now it is only possible to git clone this repo and build the executable by yourself. I will add it to crates.io soon. 
 
+### Dependencies
+
+* Latest Rust stable for your platform
+
+```
+git clone https://github.com/alexanderwe/bandwidth-monitor.git bandwidth-monitor
+cd bandwith-monitor
+cargo build --release
+``` 
+
+After that you can move the executable `/target/release/` anywhere you want. 
 
 ## Depdendencies
 
-* You need to have FontAwesome 4 installed
+* You need to have FontAwesome 4 installed to display to up and down arrow
 
 ## Usage
 
@@ -55,13 +65,13 @@ modules-right = bandwidthmonitor memory....
 
 [module/bandwidthmonitor]
 type = custom/script
-exec = path/to/bandwitdh-rs
+exec = path/to/bandwitdh-rs or exec = path/to/bandwidth-rs -c path/to/your/config
 label = %output%
 format = <label>
 interval = 1 
 ``` 
 
-![Polybar Screenshot](/screenshot.png)
+![Polybar Screenshot](/assets/screenshot.png)
 
 ## Sidemarks
 
